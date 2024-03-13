@@ -10,7 +10,10 @@ from types import ModuleType
 #</Imports
 
 #> Package >/
-__all__ = ('FLBinder',)
+__all__ = ('FLType', 'FLBinder', 'packages')
+
+# Objects
+FLType = typing.Annotated[ModuleType, 'FlexiLynx']
 
 class FLBinder:
     '''
@@ -22,13 +25,13 @@ class FLBinder:
 
     _UNBOUND_CURRENT = object()
 
-    def __new__(cls, fl: ModuleType, *, _current: typing.Any = _UNBOUND_CURRENT) -> typing.Self | typing.Callable:
+    def __new__(cls, fl: FLType, *, _current: typing.Any = _UNBOUND_CURRENT) -> typing.Self | typing.Callable:
         if getattr(_current, '_fl_bindable', False):
             return functools.partial(_current, fl)
         if getattr(_current, '_fl_bindablem', False):
             return functools.partialmethod(_current, fl)
         return super().__new__(cls)
-    def __init__(self, fl: ModuleType, *, _current: typing.Any = _UNBOUND_CURRENT):
+    def __init__(self, fl: FLType, *, _current: typing.Any = _UNBOUND_CURRENT):
         self._bound = fl
         self._current = sys.modules[__name__] if _current is FLBinder._UNBOUND_CURRENT else _current
     def __getattr__(self, attr: str) -> typing.Self:
@@ -54,3 +57,6 @@ class FLBinder:
         '''Marks a method as being bindable via `FLBinder`'''
         f._fl_bindablem = True
         return f
+
+# Submodules
+from . import packages
