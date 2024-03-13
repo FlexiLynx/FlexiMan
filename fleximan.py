@@ -23,5 +23,5 @@ def main(args: typing.Sequence[str]):
             operations.HELP.cli()
         sys.exit(op)
     # dispatch to operator cli
-    op.cli()
+    op.cli(args)
 if __name__ == '__main__': main(sys.argv[1:])
