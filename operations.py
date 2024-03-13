@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 #</Imports
 
 #> Header >/
-_operations = ('SYNC', 'REMOVE', 'DATABASE', 'FILES', 'DEPTEST')
+_operations = ('SYNC', 'REMOVE', 'DATABASE', 'FILES', 'DEPTEST', 'HELP')
 __all__ = ('operations', 'op_from_short', 'op_from_long') + _operations
 
 # Base class
@@ -14,7 +14,7 @@ __all__ = ('operations', 'op_from_short', 'op_from_long') + _operations
 class Operation:
     name: str
     short: str | None = field(default=None, kw_only=True)
-    argstr: str
+    argstr: str | None
     desc: str
     cli: typing.Callable[[typing.Sequence[str]], None]
 
@@ -28,6 +28,7 @@ REMOVE = Operation('remove', '!WIP:argstr!', '!WIP:desc!', NotImplemented)
 DATABASE = Operation('database', '!WIP:argstr!', '!WIP:desc!', NotImplemented)
 FILES = Operation('files', '!WIP:argstr!', '!WIP:desc!', NotImplemented)
 DEPTEST = Operation('deptest', '!WIP:argstr!', '!WIP:desc!', NotImplemented, short='T')
+HELP = Operation('help', None, 'Basic information/usage', NotImplemented, short='h')
 
 operations = {opn: globals()[opn] for opn in _operations}
 
