@@ -5,7 +5,7 @@ import click
 import typing
 from enum import IntEnum
 
-import operations
+from . import operations
 #</Imports
 
 #> Header >/

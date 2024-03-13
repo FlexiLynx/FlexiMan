@@ -5,8 +5,8 @@ import sys
 import click
 import typing
 
-import parser
-import operations
+from cli import parser
+from cli import operations
 #</Imports
 
 #> Header
