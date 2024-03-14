@@ -2,8 +2,8 @@
 
 #> Imports
 import sys
-import click
 import typing
+import argparse
 
 from cli import parser
 from cli import operations
@@ -16,11 +16,10 @@ from cli import operations
 def main(args: typing.Sequence[str]):
     # preprocess operation
     op,args = parser.split_operation(args)
-    click.echo(repr(op), file=sys.stderr)
     # handle errors
     if isinstance(op, parser.ExitCode):
         if op is parser.ExitCode.IMPROPER_USAGE:
-            operations.HELP.cli()
+            operations.HELP.cli(())
         sys.exit(op)
     # dispatch to operator cli
     op.cli(args)
