@@ -5,8 +5,8 @@ import sys
 import typing
 import argparse
 
-from cli import parser
 from cli import operations
+from cli import parser
 #</Imports
 
 #> Header
@@ -22,5 +22,7 @@ def main(args: typing.Sequence[str]):
             operations.HELP.cli(())
         sys.exit(op)
     # dispatch to operator cli
-    op.cli(args)
+    ec = op.cli(args)
+    if ec is None: raise TypeError('Operator CLI function did not return a code')
+    sys.exit(ec)
 if __name__ == '__main__': main(sys.argv[1:])

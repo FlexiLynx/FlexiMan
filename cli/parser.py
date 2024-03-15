@@ -15,7 +15,7 @@ ExitCode = IntEnum('ExitCode', {'SUCCESS': 0,
                                 'GENERIC': 1,
                                 'IMPROPER_USAGE': 2})
 
-def split_operation(args: typing.Sequence[str]) -> tuple[operations.Operation | ExitCode, typing.Sequence[str] | None]:
+def split_operation(args: typing.Sequence[str]) -> tuple[typing.ForwardRef('operations.Operation') | ExitCode, typing.Sequence[str] | None]:
     if not (args and args[0].startswith('-') and (len(args[0]) > 1)): # catches: ``, `-`
         click.echo('Error: missing operation', err=True)
         return (ExitCode.IMPROPER_USAGE, None)
