@@ -15,18 +15,29 @@ __all__ = ('FLType', 'FLBinder', 'db', 'packages')
 # Objects
 FLType = typing.Annotated[ModuleType, 'FlexiLynx']
 
+class _PartialClass:
+    __slots__ = ('__fl', '__bound')
+    def __init__(self, bound: type, fl: FLType):
+        self.__fl = fl
+        self.__bound = bound
+    def __getattr__(self, attr: str) -> typing.Any:
+        return getattr(self.__bound, attr)
+    def __call__(self, *args, **kwargs) -> object:
+        return self.__bound(self.__fl, *args, **kwargs)
 class FLBinder:
     '''
         Wraps this library to automatically call functions with a module
         When first constructed, all attributes are obtained from the root library
         Functions wrapped with `@FLBinder._fl_bindable[m]`
     '''
-    __slots__ = ('_bound', '_current', '__wrapped__')
+    __slots__ = ('_bound', '_current')
 
     _UNBOUND_CURRENT = object()
 
     def __new__(cls, fl: FLType, *, _current: typing.Any = _UNBOUND_CURRENT) -> typing.Self | typing.Callable:
         if getattr(_current, '_fl_bindable', False):
+            if isinstance(_current, type):
+                return _PartialClass(_current, fl)
             return functools.partial(_current, fl)
         if getattr(_current, '_fl_bindablem', False):
             return functools.partialmethod(_current, fl)
