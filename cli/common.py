@@ -60,5 +60,6 @@ def entrypoint(ap: argparse.ArgumentParser, runlevel: typing.Literal[0, 1, 2]) -
     return run_entrypoint
 
 # Argument helpers
-def menu_arg(ap: argparse.ArgumentParser, dest: str, short: str, long: str, *args, **kwargs):
-    ap.add_argument(f'-{short}', f'--{long}', *args, dest=dest, action='store_const', const=long, **kwargs)
+def menu_arg(ap: argparse.ArgumentParser, dest: str, short: str | None, long: str, *args, **kwargs):
+    params = (f'--{long}',) if short is None else (f'-{short}', f'--{long}')
+    ap.add_argument(*params, *args, dest=dest, action='store_const', const=long, **kwargs)
