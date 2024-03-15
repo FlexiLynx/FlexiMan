@@ -1,6 +1,7 @@
 #!/bin/python3
 
 #> Imports
+import time
 import click
 import types
 import atexit
@@ -44,7 +45,7 @@ class State(typing.NamedTuple):
         return self._replace(expl=set(self.expl), deps=set(self.deps))
 
     @FLBinder._fl_bindablem
-    def batchmod(self, fl: FLType | None = None, *, freeze: bool = False, unfreeze: bool = False, chksum: bool = True) -> typing.Self:
+    def batchmod(self, fl: FLType | None = None, *, freeze: bool = False, unfreeze: bool = False, chksum: bool = True, mtime: bool = True) -> typing.Self:
         '''
             Returns a new `State` with the requested modifications
                 More efficient (probably) than doing these all separately, as only one new `State` is constructed
@@ -55,9 +56,10 @@ class State(typing.NamedTuple):
         '''
         assert not (freeze and unfreeze), 'Do you take me for some kind of fool?'
         if chksum and (fl is None): raise TypeError('Required paramater "fl" is missing (needed for "chksum")')
-        return State(mtime=self.mtime, **({'expl': frozenset(self.expl), 'deps': frozenset(self.deps)}
-                                          if freeze else {'expl': set(self.expl), 'deps': set(self.deps)} if unfreeze
-                                          else {'expl': self.expl, 'deps': self.deps}),
+        return State(mtime=int(time.time()) if mtime else self.time,
+                     **({'expl': frozenset(self.expl), 'deps': frozenset(self.deps)}
+                        if freeze else {'expl': set(self.expl), 'deps': set(self.deps)} if unfreeze
+                        else {'expl': self.expl, 'deps': self.deps}),
                      chksum=self.mkchksum(fl) if chksum else self.chksum)
 
 @FLBinder._fl_bindable
@@ -110,4 +112,4 @@ class Controller(contextlib.AbstractContextManager):
         with self.rlock:
             if not self.flock.held:
                 raise RuntimeError('Refusing to write a state to the database without holding the file-lock')
-            self._dbfp.write_bytes(self._packer.pack(s.batchmod(self.bound, freeze=True, chksum=True)))
+            self._dbfp.write_bytes(self._packer.pack(s.batchmod(self.bound, freeze=True, chksum=True, mtime=True)))
