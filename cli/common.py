@@ -27,7 +27,7 @@ class UsageError(Exception): pass
 # Argument adders
 def root(ap: argparse.ArgumentParser):
     ap.add_argument('-r', '--root', type=Path, help='Set an alternative FlexiLynx root location', metavar='PATH', default=Path('.'))
-def database(ap: argparse.ArgumentParser):
+def database(ap: argparse.ArgumentParser) -> typing.Callable[[argparse.Namespace, fmlib.FLBinder], fmlib.db.Controller]:
     ap.add_argument('-b', '--dbpath', type=Path, help='Set an alternative database directory', metavar='PATH', default=None)
     def load_database(args: argparse.Namespace, fmlib: fmlib.FLBinder) -> fmlib.db.Controller:
         if args.dbpath is None: args.dbpath = args.root
@@ -39,7 +39,7 @@ def database(ap: argparse.ArgumentParser):
         return fmlib.db.Controller(args.dbpath)
     return load_database
 
-def entrypoint(ap: argparse.ArgumentParser, runlevel: typing.Literal[0, 1, 2]) -> typing.Callable[[typing.Sequence[str]], None]:
+def entrypoint(ap: argparse.ArgumentParser, runlevel: typing.Literal[0, 1, 2]) -> typing.Callable[[argparse.Namespace], tuple[types.ModuleType, fmlib.FLBinder | None]]:
     ap.add_argument('-e', '--entrypoint', type=Path, help='Set an alternative FlexiLynx entrypoint (either the path containing `__entrypoint__.py` and `__init__.py`, or the file to use instead), defaults to `--root`', metavar='PATH', default=None)
     def run_entrypoint(args: argparse.Namespace) -> tuple[types.ModuleType, fmlib.FLBinder | None]:
         if args.entrypoint is None: args.entrypoint = args.root/'__init__.py'
