@@ -26,7 +26,7 @@ common.menu_arg(menu, 'action', 'k', 'check', help='Test database checksum')
 common.menu_arg(menu, 'action', None, 'asdeps', help='Mark packages as non-explicitly installed')
 common.menu_arg(menu, 'action', None, 'asexplicit', help='Mark packages as explicitly installed')
 missing = parser.add_mutually_exclusive_group(required=False)
-missing.add_argument('--fail-if-missing', help='Fail if any targeted packages are missing')
+missing.add_argument('--ignore-missing', help='Don\'t fail if any targeted packages are missing', action='store_true')
 parser.add_argument('targets', nargs='*')
 
 def cli(args: typing.Sequence[str]) -> ExitCode:
@@ -66,8 +66,9 @@ def _action_as_(expl: bool, args: argparse.Namespace, fmlib: common.fmlib.FLBind
     state = db.read()
     missing = targets - (state.expl.keys() | state.deps.keys())
     if missing:
-        if args.fail_if_missing:
-            _eprint('Error: some targets are not installed (and --fail-if-missing)')
+        _eprint(f'Some targets are not installed:\n{", ".join(missing)}')
+        if not args.ignore_missing:
+            _eprint('Error: some targets are not installed (pass --ignore-missing to ignore)')
             return ExitCode.GENERIC
         targets -= missing
     targets -= (state.expl.keys() if expl else state.deps.keys())
