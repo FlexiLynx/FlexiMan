@@ -9,12 +9,14 @@ import threading
 import contextlib
 from pathlib import Path
 
-from . import FLBinder, FLType
+from . import FLType
+from . import _total_autobind_store
 #</Imports
 
 #> Header >/
 __all__ = ('Controller', 'State')
 
+@_total_autobind_store.bindable_cls('db')
 class State(typing.NamedTuple):
     '''
         A result of a database read, or a state to write to a database
@@ -30,7 +32,7 @@ class State(typing.NamedTuple):
     chksum: bytes | None
     vers: float = LATEST_VERSION
 
-    @FLBinder._fl_bindablem
+    @_total_autobind_store.bindable_meth
     def mkchksum(self, fl: FLType) -> bytes:
         '''
             Returns the checksum of this `State`
@@ -39,7 +41,7 @@ class State(typing.NamedTuple):
         return hashlib.new(fl.core.util.hashtools.ALGORITHM_DEFAULT_LOW,
                            fl.core.util.pack.pack(self.vers, self.expl, self.deps)).digest()
 
-    @FLBinder._fl_bindablem
+    @_total_autobind_store.bindable_meth
     def update(self, fl: FLType, *, lazy: bool = False) -> typing.Self:
         '''
             Return a new `State` with `.mtime` and `.chksum` updated
@@ -49,7 +51,7 @@ class State(typing.NamedTuple):
         return self._replace(expl=self.expl if lazy else self.expl.copy(), deps=self.deps if lazy else self.deps.copy(),
                              mtime=int(time.time()), chksum=self.mkchksum(fl))
 
-@FLBinder._fl_bindable
+@_total_autobind_store.bindable_cls('db')
 class Controller(contextlib.AbstractContextManager):
     '''Acts as an interface to a database file, handling locking and returning of states'''
     __slots__ = ('bound', 'path',
@@ -59,6 +61,7 @@ class Controller(contextlib.AbstractContextManager):
     PACKAGE_DB_FILENAME = 'packages_db.pakd'
     PACKAGE_DB_LOCKNAME = f'{PACKAGE_DB_FILENAME}.lock'
 
+    @_total_autobind_store.bindable_meth
     def __init__(self, fl: FLType, path: Path):
         self.bound = fl
         self.path = path

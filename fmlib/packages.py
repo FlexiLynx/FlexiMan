@@ -6,7 +6,8 @@
 import typing
 from pathlib import Path
 
-from . import FLBinder, FLType
+from . import FLType
+from . import _total_autobind_store
 #</Imports
 
 #> Header >/
@@ -19,28 +20,28 @@ __all__ = ('PackageType',
 type PackageType = object
 
 # Setup functions
-@FLBinder._fl_bindable
+@_total_autobind_store.bindable_func('packages')
 def setup_from_url(fl: FLType, url: str, to: Path, *, fetchfn: typing.Callable[[str], bytes] | None = None) -> PackageType:
     '''
         Sets up and returns the package with a blueprint from `url` to the path `to`
         See `help(setup_from_blueprint)` for more information
     '''
     return setup_from_bytes(fl, (fl.core.util.net.fetch1 if fetchfn is None else fetchfn)(url), to)
-@FLBinder._fl_bindable
+@_total_autobind_store.bindable_func('packages')
 def setup_from_bytes(fl: FLType, data: bytes, to: Path) -> PackageType:
     '''
         Sets up and returns the package with a blueprint from `data` to the path `to`
         See `help(setup_from_blueprint)` for more information
     '''
     return setup_from_blueprint(fl, fl.core.frameworks.blueprint.Blueprint.deserialize(data.decode()), to)
-@FLBinder._fl_bindable
+@_total_autobind_store.bindable_func('packages')
 def setup_from_dict(fl: FLType, d: dict, to: Path) -> PackageType:
     '''
         Sets up and returns the package with a blueprint from `d` to the path `to`
         See `help(setup_from_blueprint)` for more information
     '''
     return setup_from_blueprint(fl, fl.core.frameworks.blueprint.Blueprint.deserialize_from_dict(d), to)
-@FLBinder._fl_bindable
+@_total_autobind_store.bindable_func('packages')
 def setup_from_blueprint(fl: FLType, bp: 'Blueprint', to: Path) -> PackageType:
     '''
         Sets up and returns the package with blueprint `bp` to the path `to`
@@ -60,7 +61,7 @@ def id_to_name(id: str) -> str:
     return id.replace(':', '-').replace('/', '_')
 
 # Directory functions
-@FLBinder._fl_bindable
+@_total_autobind_store.bindable_func('packages')
 def package_from_dir(fl: FLType, d: Path) -> PackageType | None:
     '''
         Gets a package from a directory

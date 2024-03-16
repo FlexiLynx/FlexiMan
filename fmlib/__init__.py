@@ -5,69 +5,38 @@
 #> Imports
 import sys
 import typing
+import inspect
 import functools
 from types import ModuleType
 #</Imports
 
 #> Package >/
-__all__ = ('FLType', 'FLBinder', 'db', 'packages')
+__all__ = ('FLType', 'db', 'packages')
 
 # Objects
-FLType = typing.Annotated[ModuleType, 'FlexiLynx']
+type FLType = typing.Annotated[ModuleType, 'FlexiLynx']
 
-class _PartialClass:
-    __slots__ = ('__fl', '__bound')
-    def __init__(self, bound: type, fl: FLType):
-        self.__fl = fl
-        self.__bound = bound
-    def __getattr__(self, attr: str) -> typing.Any:
-        return getattr(self.__bound, attr)
-    def __call__(self, *args, **kwargs) -> object:
-        return self.__bound(self.__fl, *args, **kwargs)
-class FLBinder:
-    '''
-        Wraps this library to automatically call functions with a module
-        When first constructed, all attributes are obtained from the root library
-        Functions wrapped with `@FLBinder._fl_bindable[m]`
-    '''
-    __slots__ = ('_bound', '_current')
-
-    _UNBOUND_CURRENT = object()
-
-    def __new__(cls, fl: FLType, *, _current: typing.Any = _UNBOUND_CURRENT) -> typing.Self | typing.Callable:
-        if getattr(_current, '_fl_bindable', False):
-            if isinstance(_current, type):
-                return _PartialClass(_current, fl)
-            return functools.partial(_current, fl)
-        if getattr(_current, '_fl_bindablem', False):
-            return functools.partialmethod(_current, fl)
-        return super().__new__(cls)
-    def __init__(self, fl: FLType, *, _current: typing.Any = _UNBOUND_CURRENT):
-        self._bound = fl
-        self._current = sys.modules[__name__] if _current is FLBinder._UNBOUND_CURRENT else _current
-    def __getattr__(self, attr: str) -> typing.Self:
-        return type(self)(self._bound, _current=getattr(self._current, attr))
-    def __setattr__(self, attr: str, val: typing.Any):
-        if attr in self.__slots__:
-            return super().__setattr__(attr, val)
-        setattr(self._current, attr, val)
-    def __delattr__(self, attr: str):
-        delattr(self._current, attr)
-    def __dir__(self) -> typing.Sequence[str]:
-        return dir(self._current)
-    def __repr__(self) -> str:
-        return f'<FLBinder bound={self._bound!r} current={self._current!r}>'
-
-    @staticmethod
-    def _fl_bindable(f: typing.Callable) -> typing.Callable:
-        '''Marks a function as being bindable via `FLBinder`'''
-        f._fl_bindable = True
-        return f
-    @staticmethod
-    def _fl_bindablem(f: typing.Callable) -> typing.Callable:
-        '''Marks a method as being bindable via `FLBinder`'''
-        f._fl_bindablem = True
-        return f
+class _TotalAutobindStore:
+    __slots__ = ('marked_f', 'marked_c')
+    def __init__(self):
+        self.marked_f = {}
+        self.marked_c = {}
+    @functools.cache
+    def bindable_func(self, where: str) -> typing.Callable:
+        def binder(f: typing.Callable) -> typing.Callable:
+            self.marked_f.setdefault(where, []).append(f)
+            return f
+        return binder
+    @functools.cache
+    def bindable_cls(self, where: str) -> type:
+        def binder(c: type) -> type:
+            self.marked_c.setdefault(where, []).append(c)
+            return c
+        return binder
+    def bindable_meth(self, m: typing.Callable) -> typing.Callable:
+        m._totalautobindable = True
+        return m
+_total_autobind_store = _TotalAutobindStore()
 
 # Submodules
 from . import db
