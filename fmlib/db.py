@@ -20,54 +20,43 @@ __all__ = ('Controller', 'State')
 class State(typing.NamedTuple):
     '''
         A result of a database read, or a state to write to a database
-        `expl` are explicitly installed packages, `deps` are dependencies
-        Note that setting `chksum` to `NotImplemented` is only allowed when
-            calculating the checksum
+        `expl` are explicitly installed packages, `deps` are dependencies,
+            and the values are a boolean corresponding to whether the entry is a module (`False`) or a plugin (`True`)
     '''
+    LATEST_VERSION = 2.0
+
+    expl: dict[str, bool]
+    deps: dict[str, bool]
+
     mtime: int
-
-    expl: frozenset[str] | set[str]
-    deps: frozenset[str] | set[str]
-
-    chksum: bytes | typing.Literal[NotImplemented]
+    chksum: bytes | None
+    vers: float = LATEST_VERSION
 
     @FLBinder._fl_bindablem
     def mkchksum(self, fl: FLType) -> bytes:
+        '''
+            Returns the checksum of this `State`
+            Note that `.mtime` is not included in the checksum (neither is `.chksum`)
+        '''
         return hashlib.new(fl.core.util.hashtools.ALGORITHM_DEFAULT_LOW,
-                           fl.core.util.pack.pack(self._replace(chksum=NotImplemented))).digest()
-
-    def freeze(self) -> typing.Self:
-        '''Returns a new `State` with `frozenset`s instead of `set`s'''
-        return self._replace(expl=frozenset(self.expl),
-                             deps=frozenset(self.deps))
-    def thaw(self) -> typing.Self:
-        '''Returns a new `State` with non-`frozenset` `set`s'''
-        return self._replace(expl=set(self.expl), deps=set(self.deps))
+                           fl.core.util.pack.pack(self.vers, self.expl, self.deps)).digest()
 
     @FLBinder._fl_bindablem
-    def batchmod(self, fl: FLType | None = None, *, freeze: bool = False, unfreeze: bool = False, chksum: bool = True, mtime: bool = True) -> typing.Self:
+    def update(self, fl: FLType, *, lazy: bool = False) -> typing.Self:
         '''
-            Returns a new `State` with the requested modifications
-                More efficient (probably) than doing these all separately, as only one new `State` is constructed
-                    (note that one additonal `State` may be constructed if `chksum`)
-            `fl` only requires a parameter if `chksum` is true, raising a `TypeError` if missing
-            An assertion is made to ensure that `freeze` and `unfreeze` are not both true
-                When assertions are disabled, the behavior is undefined
+            Return a new `State` with `.mtime` and `.chksum` updated
+            If `lazy` is true, then changing values in `.expl` or `.deps` will be reflected
+                in both `State`s, but this will save construction of copy of both
         '''
-        assert not (freeze and unfreeze), 'Do you take me for some kind of fool?'
-        if chksum and (fl is None): raise TypeError('Required paramater "fl" is missing (needed for "chksum")')
-        return State(mtime=int(time.time()) if mtime else self.time,
-                     **({'expl': frozenset(self.expl), 'deps': frozenset(self.deps)}
-                        if freeze else {'expl': set(self.expl), 'deps': set(self.deps)} if unfreeze
-                        else {'expl': self.expl, 'deps': self.deps}),
-                     chksum=self.mkchksum(fl) if chksum else self.chksum)
+        return self._replace(expl=self.expl if lazy else self.expl.copy(), deps=self.deps if lazy else self.deps.copy(),
+                             mtime=int(time.time()), chksum=self.mkchksum(fl))
 
 @FLBinder._fl_bindable
 class Controller(contextlib.AbstractContextManager):
     '''Acts as an interface to a database file, handling locking and returning of states'''
     __slots__ = ('bound', 'path',
                  'rlock', 'flock',
-                 '_dbfp', '_packer', '_db_state_noexist')
+                 '_dbfp', '_packer', '_db_state_null_chksum')
 
     PACKAGE_DB_FILENAME = 'packages_db.pakd'
     PACKAGE_DB_LOCKNAME = f'{PACKAGE_DB_FILENAME}.lock'
@@ -79,8 +68,7 @@ class Controller(contextlib.AbstractContextManager):
         self.flock = self.bound.core.util.parallel.FLock(path/self.PACKAGE_DB_LOCKNAME, self.rlock)
         self._dbfp = self.path / self.PACKAGE_DB_FILENAME
         self._packer = self.bound.core.util.pack.Packer(reduce_namedtuple=self.bound.core.util.pack.ReduceNamedtuple.AS_DICT)
-        self._db_state_noexist = State(mtime=0, expl=frozenset(), deps=frozenset(), chksum=NotImplemented)
-        self._db_state_noexist = self._db_state_noexist._replace(chksum=self._db_state_noexist.mkchksum(self.bound))
+        self._db_state_null_chksum = State(expl={}, deps={}, mtime=-1, chksum=None).mkchksum(fl)
 
     def __enter__(self):
         self.flock.acquire()
@@ -101,7 +89,7 @@ class Controller(contextlib.AbstractContextManager):
             if not (allow_unlocked_read or self.flock.held):
                 raise RuntimeError('Refusing to read from the database without holding the file-lock when allow_unlocked_read is false')
             if not self._dbfp.exists():
-                if allow_nonexist_read: return self._db_state_noexist
+                if allow_nonexist_read: return State(expl={}, deps={}, mtime=-1, chksum=self._db_state_null_chksum)
                 raise FileNotFoundError('Refusing to read from the database when it doesn\'t exist and allow_nonexist_read is false')
             return State(**self._packer.unpack(self._dbfp.read_bytes())[0])
     def write(self, s: State):
@@ -112,4 +100,4 @@ class Controller(contextlib.AbstractContextManager):
         with self.rlock:
             if not self.flock.held:
                 raise RuntimeError('Refusing to write a state to the database without holding the file-lock')
-            self._dbfp.write_bytes(self._packer.pack(s.batchmod(self.bound, freeze=True, chksum=True, mtime=True)))
+            self._dbfp.write_bytes(self._packer.pack(s.update(self.bound, lazy=True)))
