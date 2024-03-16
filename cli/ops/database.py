@@ -14,7 +14,7 @@ from .. import _eprint
 
 #> Header >/
 __all__ = ('cli', 'parser',
-           'action_check')
+           'action_check', 'action_asdeps', 'action_asexplicit')
 
 parser = argparse.ArgumentParser()
 common.root(parser)
