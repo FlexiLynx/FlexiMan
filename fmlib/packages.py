@@ -10,34 +10,38 @@ from . import FLBinder, FLType
 #</Imports
 
 #> Header >/
-__all__ = ('setup_from_url', 'setup_from_bytes', 'setup_from_dict', 'setup_from_blueprint',
+__all__ = ('PackageType',
+           'setup_from_url', 'setup_from_bytes', 'setup_from_dict', 'setup_from_blueprint',
            'id_to_name',
            'package_from_dir')
 
+# Package typehint
+type PackageType = object
+
 # Setup functions
 @FLBinder._fl_bindable
-def setup_from_url(fl: FLType, url: str, to: Path, *, fetchfn: typing.Callable[[str], bytes] | None = None) -> 'Package':
+def setup_from_url(fl: FLType, url: str, to: Path, *, fetchfn: typing.Callable[[str], bytes] | None = None) -> PackageType:
     '''
         Sets up and returns the package with a blueprint from `url` to the path `to`
         See `help(setup_from_blueprint)` for more information
     '''
     return setup_from_bytes(fl, (fl.core.util.net.fetch1 if fetchfn is None else fetchfn)(url), to)
 @FLBinder._fl_bindable
-def setup_from_bytes(fl: FLType, data: bytes, to: Path) -> 'Package':
+def setup_from_bytes(fl: FLType, data: bytes, to: Path) -> PackageType:
     '''
         Sets up and returns the package with a blueprint from `data` to the path `to`
         See `help(setup_from_blueprint)` for more information
     '''
     return setup_from_blueprint(fl, fl.core.frameworks.blueprint.Blueprint.deserialize(data.decode()), to)
 @FLBinder._fl_bindable
-def setup_from_dict(fl: FLType, d: dict, to: Path) -> 'Package':
+def setup_from_dict(fl: FLType, d: dict, to: Path) -> PackageType:
     '''
         Sets up and returns the package with a blueprint from `d` to the path `to`
         See `help(setup_from_blueprint)` for more information
     '''
     return setup_from_blueprint(fl, fl.core.frameworks.blueprint.Blueprint.deserialize_from_dict(d), to)
 @FLBinder._fl_bindable
-def setup_from_blueprint(fl: FLType, bp: 'Blueprint', to: Path) -> 'Package':
+def setup_from_blueprint(fl: FLType, bp: 'Blueprint', to: Path) -> PackageType:
     '''
         Sets up and returns the package with blueprint `bp` to the path `to`
         Note that this only `.install()`s the `blueprint.json` and `package_db.pakd`,
@@ -57,7 +61,7 @@ def id_to_name(id: str) -> str:
 
 # Directory functions
 @FLBinder._fl_bindable
-def package_from_dir(fl: FLType, d: Path) -> 'Package' | None:
+def package_from_dir(fl: FLType, d: Path) -> PackageType | None:
     '''
         Gets a package from a directory
         Returns `None` if the directory doesn't exist or is not a package
