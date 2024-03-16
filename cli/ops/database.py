@@ -2,6 +2,7 @@
 
 #> Imports
 import sys
+import types
 import typing
 import argparse
 from pathlib import Path
@@ -41,7 +42,7 @@ def cli(args: typing.Sequence[str]) -> ExitCode:
         _eprint(f'Dispatching to action_{args.action}()')
         return globals()[f'action_{args.action}'](args, fmlib, ep.FlexiLynx, db)
 
-def action_check(args: argparse.Namespace, fmlib: common.fmlib.FLBinder, fl: common.fmlib.FLType, db: common.fmlib.db.Controller) -> ExitCode:
+def action_check(args: argparse.Namespace, fmlib: types.ModuleType, fl: common.fmlib.FLType, db: common.fmlib.db.Controller) -> ExitCode:
     if args.targets:
         _eprint('Error: extraneous arguments ("targets" should not be supplied with -k/--check)')
         return ExitCode.IMPROPER_USAGE
@@ -57,7 +58,7 @@ def action_check(args: argparse.Namespace, fmlib: common.fmlib.FLBinder, fl: com
     print('Checksums do not match')
     return ExitCode.GENERIC
 
-def _action_as_(expl: bool, args: argparse.Namespace, fmlib: common.fmlib.FLBinder, fl: common.fmlib.FLType, db: common.fmlib.db.Controller) -> ExitCode:
+def _action_as_(expl: bool, args: argparse.Namespace, fmlib: types.ModuleType, fl: common.fmlib.FLType, db: common.fmlib.db.Controller) -> ExitCode:
     if not args.targets:
         _eprint('Nothing to do')
         return ExitCode.SUCCESS
