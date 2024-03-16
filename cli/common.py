@@ -19,7 +19,7 @@ except ModuleNotFoundError as mnfe:
 #> Header >/
 __all__ = ('fmlib',
            'UsageError',
-           'common', 'database', 'entrypoint',
+           'root', 'database', 'entrypoint',
            'menu_arg')
 
 class UsageError(Exception): pass
