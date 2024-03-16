@@ -45,7 +45,6 @@ def entrypoint(ap: argparse.ArgumentParser, runlevel: typing.Literal[0, 1, 2]) -
         if args.entrypoint is None: args.entrypoint = args.root/'__init__.py'
         elif args.entrypoint.is_dir(): args.entrypoint /= '__init__.py'
         _eprint(f'Attempting to fetch entrypoint: {args.entrypoint} | runlevel: {runlevel}')
-        global ep
         ep = iutil.spec_from_file_location('<FlexiLynx entrypoint>', args.entrypoint, submodule_search_locations=(args.entrypoint.parent,)).loader.load_module()
         if runlevel < 1: return (ep, None)
         _eprint('__load__()')
