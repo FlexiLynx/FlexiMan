@@ -10,7 +10,8 @@ from . import FLBinder, FLType
 #</Imports
 
 #> Header >/
-__all__ = ('setup_from_url', 'setup_from_bytes', 'setup_from_dict', 'setup_from_blueprint')
+__all__ = ('setup_from_url', 'setup_from_bytes', 'setup_from_dict', 'setup_from_blueprint',
+           'id_to_name')
 
 # Setup functions
 @FLBinder._fl_bindable
@@ -47,3 +48,8 @@ def setup_from_blueprint(fl: FLType, bp: 'Blueprint', to: Path) -> 'Package':
     pkg.install(to)
     pkg.save()
     return pkg
+
+# String functions
+def id_to_name(id: str) -> str:
+    '''Converts an ID to its corresponding standard folder name'''
+    return id.replace(':', '-').replace('/', '_')
