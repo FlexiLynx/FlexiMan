@@ -11,7 +11,8 @@ from . import FLBinder, FLType
 
 #> Header >/
 __all__ = ('setup_from_url', 'setup_from_bytes', 'setup_from_dict', 'setup_from_blueprint',
-           'id_to_name')
+           'id_to_name',
+           'package_from_dir')
 
 # Setup functions
 @FLBinder._fl_bindable
@@ -53,3 +54,15 @@ def setup_from_blueprint(fl: FLType, bp: 'Blueprint', to: Path) -> 'Package':
 def id_to_name(id: str) -> str:
     '''Converts an ID to its corresponding standard folder name'''
     return id.replace(':', '-').replace('/', '_')
+
+# Directory functions
+@FLBinder._fl_bindable
+def package_from_dir(fl: FLType, d: Path) -> 'Package' | None:
+    '''
+        Gets a package from a directory
+        Returns `None` if the directory doesn't exist or is not a package
+    '''
+    if not d.exists(): return None
+    try:
+        return fl.core.frameworks.blueprint.Package(d)
+    except Exception: return None
