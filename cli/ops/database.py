@@ -27,7 +27,6 @@ common.menu_arg(menu, 'action', None, 'asdeps', help='Mark packages as non-expli
 common.menu_arg(menu, 'action', None, 'asexplicit', help='Mark packages as explicitly installed')
 missing = parser.add_mutually_exclusive_group(required=False)
 missing.add_argument('--fail-if-missing', help='Fail if any targeted packages are missing')
-missing.add_argument('--add-anyway', help='Add targeted packages to the database when they aren\'t in it', action='store_true')
 parser.add_argument('targets', nargs='*')
 
 def cli(args: typing.Sequence[str]) -> ExitCode:
@@ -64,21 +63,19 @@ def _action_as_(expl: bool, args: argparse.Namespace, fmlib: common.fmlib.FLBind
         return ExitCode.SUCCESS
     targets = set(args.targets)
     _eprint('Reading database')
-    state = db.read().thaw()
-    missing = targets - (state.expl | state.deps)
+    state = db.read()
+    missing = targets - (state.expl.keys() | state.deps.keys())
     if missing:
         if args.fail_if_missing:
             _eprint('Error: some targets are not installed (and --fail-if-missing)')
             return ExitCode.GENERIC
-        if args.add_anyway:
-            _eprint(f'Warning: some targets are not installed, but will be added to the database (--add-anyway):\n{", ".join(missing)}')
-        else: targets -= missing
-    targets -= (state.expl if expl else state.deps)
+        targets -= missing
+    targets -= (state.expl.keys() if expl else state.deps.keys())
     if not targets:
         _eprint('Nothing to do')
         return ExitCode.SUCCESS
-    (state.expl if expl else state.deps).update(targets)
-    (state.deps if expl else state.expl).difference_update(targets - missing)
+    pop = (state.deps if expl else state.expl).pop
+    (state.expl if expl else state.deps).update(zip(targets, map(pop, targets)))
     _eprint('Writing database')
     db.write(state)
     return ExitCode.SUCCESS
