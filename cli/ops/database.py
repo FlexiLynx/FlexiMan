@@ -1,6 +1,7 @@
 #!/bin/python3
 
 #> Imports
+import sys
 import typing
 import argparse
 from pathlib import Path
@@ -16,7 +17,7 @@ from .. import _eprint
 __all__ = ('cli', 'parser',
            'action_check', 'action_asdeps', 'action_asexplicit')
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog=f'{sys.argv[0]} -D')
 common.root(parser)
 load_db = common.database(parser)
 exec_ep = common.entrypoint(parser, 2)
