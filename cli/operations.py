@@ -5,6 +5,7 @@ import typing
 from dataclasses import dataclass, field
 
 from .ops import database
+from .ops import files
 #</Imports
 
 #> Header >/
@@ -28,7 +29,7 @@ class Operation:
 SYNC = Operation('sync', '!WIP:argstr!', '!WIP:desc!', NotImplemented)
 REMOVE = Operation('remove', '!WIP:argstr!', '!WIP:desc!', NotImplemented)
 DATABASE = Operation('database', '!WIP:argstr!', '!WIP:desc!', database.cli)
-FILES = Operation('files', '!WIP:argstr!', '!WIP:desc!', NotImplemented)
+FILES = Operation('files', '!WIP:argstr!', '!WIP:desc!', files.cli)
 DEPTEST = Operation('deptest', '!WIP:argstr!', '!WIP:desc!', NotImplemented, short='T')
 HELP = Operation('help', None, 'Basic information/usage', NotImplemented, short='h')
 
