@@ -50,9 +50,10 @@ operation_parsers = types.SimpleNamespace(
 )
 ## Pre-parser
 pre_parser = argparse.ArgumentParser()
-_men = functools.partial(preutil.menu_arg, pre_parser, 'op')
-_men('database', '-D')
-del _men
+_menu = pre_parser.add_mutually_exclusive_group(required=True)
+_menu = functools.partial(preutil.menu_arg, _menu, 'op')
+_menu('database', '-D')
+del _menu
 
 # Parsing
 def fix_short_operation(args: typing.Sequence[str]) -> typing.Sequence[str]:

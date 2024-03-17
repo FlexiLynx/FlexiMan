@@ -4,9 +4,9 @@
 import sys
 import typing
 import argparse
+import importlib
 
-from cli import operations
-from cli import parser
+from cli import parsers
 #</Imports
 
 #> Header
@@ -14,15 +14,20 @@ from cli import parser
 
 #> Main >/
 def main(args: typing.Sequence[str]):
-    # preprocess operation
-    op,args = parser.split_operation(args)
-    # handle errors
-    if isinstance(op, parser.ExitCode):
-        if op is parser.ExitCode.IMPROPER_USAGE:
-            operations.HELP.cli(())
-        sys.exit(op)
-    # dispatch to operator cli
-    ec = op.cli(args)
-    if ec is None: raise TypeError('Operator CLI function did not return a code')
-    sys.exit(ec)
+    # preprocess args in case of short operation
+    args = parsers.fix_short_operation(args)
+    # execute initial preparser
+    pre,args = parsers.pre_parser.parse_known_args(args)
+    # dispatch the operation
+    ## fetch its module
+    op = importlib.import_module(f'cli.operations.{pre.op}')
+    ## setup its parse
+    parser = getattr(parsers.operation_parsers, pre.op)
+    op.fill(parser)
+    ## dispatch to its parser
+    args = parser.parse_args(args)
+    ## dispatch to its main
+    try: op.main(parser)
+    except parsers.ExitCode as e: sys.exit(e.code)
+
 if __name__ == '__main__': main(sys.argv[1:])
