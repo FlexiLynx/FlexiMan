@@ -17,7 +17,6 @@ __all__ = ('DoExit', 'EXIT_CODE', 'ExitCode', 'ERROR_LOCATION', 'ErrorLocation',
            'operations', 'pre_parser',
            'fix_short_operation')
 
-
 # Exit codes
 class DoExit(Exception):
     __slots__ = ('code',)
