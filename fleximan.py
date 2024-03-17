@@ -19,6 +19,8 @@ def main(args: typing.Sequence[str]):
     args = parsers.fix_short_operation(args)
     # execute initial preparser
     pre,args = parsers.pre_parser.parse_known_args(args)
+    # bring FlexiLynx to the desired runlevel
+    ep = preutil.exec_entrypoint(pre)
     # dispatch the operation
     ## fetch its module
     op = importlib.import_module(f'cli.operations.{pre.op}')
@@ -28,7 +30,7 @@ def main(args: typing.Sequence[str]):
     ## dispatch to its parser
     args = parser.parse_args(args)
     ## dispatch to its main
-    try: op.main(parser)
-    except parsers.ExitCode as e: sys.exit(e.code)
+    try: op.main(ep, args)
+    except parsers.DoExit as e: sys.exit(e.code)
 
 if __name__ == '__main__': main(sys.argv[1:])
