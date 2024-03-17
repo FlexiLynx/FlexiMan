@@ -7,6 +7,7 @@ import argparse
 import importlib
 
 from cli import parsers
+from cli import preutil
 #</Imports
 
 #> Header
@@ -22,7 +23,7 @@ def main(args: typing.Sequence[str]):
     ## fetch its module
     op = importlib.import_module(f'cli.operations.{pre.op}')
     ## create and fill its parser
-    parser = argparse.ArgumentParser(f'{sys.argv[0]} -{parser.operations[args.op]}/--{args.op}')
+    parser = argparse.ArgumentParser(f'{sys.argv[0]} -{parsers.operations[pre.op]}/--{pre.op}')
     op.fill(parser)
     ## dispatch to its parser
     args = parser.parse_args(args)
