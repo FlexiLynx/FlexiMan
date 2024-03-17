@@ -10,7 +10,7 @@ from importlib import util as iutil
 
 #> Header >/
 __all__ = ('eprint',
-           'menu_arg',
+           'menu_arg', 'RaiseAction',
            'exec_entrypoint')
 
 # IO
@@ -19,6 +19,14 @@ eprint = functools.partial(print, file=sys.stderr)
 # Argparse
 def menu_arg(ap: argparse.ArgumentParser, dest: str, name: str, *aliases: str, **kwargs):
     ap.add_argument(f'--{name}', *aliases, dest=dest, action='store_const', const=name, **kwargs)
+
+class RaiseAction(argparse.Action):
+    __slots__ = ('_exc',)
+    def __init__(self, *args, const: Exception, **kwargs):
+        self._exc = const
+        super().__init__(*args, const=const, **kwargs)
+    def __call__(self, *args):
+        raise self._exc
 
 # FlexiLynx
 runlevels = ('__load__', '__setup__')
