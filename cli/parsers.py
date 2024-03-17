@@ -13,7 +13,7 @@ from . import preutil
 
 #> Header >/
 __all__ = ('DoExit', 'EXIT_CODE', 'ExitCode', 'ERROR_LOCATION', 'ErrorLocation',
-           'operation_parsers', 'pre_parser',
+           'operations', 'pre_parser',
            'fix_short_operation')
 
 
@@ -39,21 +39,12 @@ ErrorLocation = IntEnum('ErrorLocation', {
     'PACKAGE':    0b01000000, # failed whilst attempting to access or use package
 })
 
-# Parsers
-## Operation parsers
-operation_parsers = types.SimpleNamespace(
-    sync=argparse.ArgumentParser(f'{sys.argv[0]} -S'),
-    remove=argparse.ArgumentParser(f'{sys.argv[0]} -R'),
-    database=argparse.ArgumentParser(f'{sys.argv[0]} -D'),
-    files=argparse.ArgumentParser(f'{sys.argv[0]} -F'),
-    deptest=argparse.ArgumentParser(f'{sys.argv[0]} -T'),
-)
-## Pre-parser
+# Parser
+operations = {'database': 'D'}
 pre_parser = argparse.ArgumentParser()
 _menu = pre_parser.add_mutually_exclusive_group(required=True)
 _menu = functools.partial(preutil.menu_arg, _menu, 'op')
-_menu('database', '-D')
-del _menu
+for long,short in operations.items(): _menu(long, f'-{short}')
 
 # Parsing
 def fix_short_operation(args: typing.Sequence[str]) -> typing.Sequence[str]:

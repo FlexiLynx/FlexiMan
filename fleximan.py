@@ -21,8 +21,8 @@ def main(args: typing.Sequence[str]):
     # dispatch the operation
     ## fetch its module
     op = importlib.import_module(f'cli.operations.{pre.op}')
-    ## setup its parse
-    parser = getattr(parsers.operation_parsers, pre.op)
+    ## create and fill its parser
+    parser = argparse.ArgumentParser(f'{sys.argv[0]} -{parser.operations[args.op]}/--{args.op}')
     op.fill(parser)
     ## dispatch to its parser
     args = parser.parse_args(args)
