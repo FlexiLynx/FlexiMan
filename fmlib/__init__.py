@@ -2,6 +2,8 @@
 
 '''FlexiMan library'''
 
+VERSION = '1.0.0'
+
 #> Imports
 import sys
 import typing
@@ -11,7 +13,7 @@ from types import ModuleType
 #</Imports
 
 #> Package >/
-__all__ = ('FLType', 'db', 'packages')
+__all__ = ('VERSION', 'FLType', 'db', 'packages')
 
 # Objects
 type FLType = typing.Annotated[ModuleType, 'FlexiLynx']
