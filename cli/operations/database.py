@@ -8,15 +8,12 @@ from functools import partial
 
 from .. import preutil
 from .. import parsers
-from .. import postutil
-
-import FlexiLynx
 #</Imports
 
 #> Header >/
 __all__ = ('fill', 'main', 'actions')
 
-def fill(ap: argparse.ArgumentParser):
+def fill(ap: argparse.ArgumentParser, for_help: bool):
     menu = ap.add_mutually_exclusive_group(required=True)
     menu = partial(preutil.menu_arg, menu, 'action')
     menu('check', '-k', help='Test database checksum')
@@ -25,8 +22,10 @@ def fill(ap: argparse.ArgumentParser):
     ap.add_argument('--ignore-missing', help='Don\'t fail if any target packages are missing from the database', action='store_true')
     ap.add_argument('targets', nargs='*', help='Package IDs to target')
     # LGTM way to transfer the returned function from `postutil.handle_database()` to `main()`
-    ap.add_argument('--%dbgetter%', help=argparse.SUPPRESS, default=postutil.handle_database(ap, False),
-                    action=preutil.RaiseAction, const=TypeError(f'Why would you do this{"‽" if sys.getdefaultencoding == "utf-8" else "?!"}'))
+    if not for_help:
+        from .. import postutil
+        ap.add_argument('--%dbgetter%', help=argparse.SUPPRESS, default=postutil.handle_database(ap, False),
+                        action=preutil.RaiseAction, const=TypeError(f'Why would you do this{"‽" if sys.getdefaultencoding == "utf-8" else "?!"}'))
 def main(ep: types.ModuleType, args: argparse.Namespace):
     db = getattr(args, '%dbgetter%')(args)
     print(1)
@@ -36,7 +35,8 @@ def main(ep: types.ModuleType, args: argparse.Namespace):
     finally:
         preutil.eprint('Database lock successfully released')
 
-def _action_check(args: argparse.Namespace, db: postutil.fmlib.db.Controller):
+def _action_check(args: argparse.Namespace, db: 'postutil.fmlib.db.Controller'):
+    import FlexiLynx
     if args.targets:
         preutil.eprint('Error: extraneous arguments ("targets" should not be supplied with -k/--check)')
         raise parsers.DoExit(parsers.ExitCode.USAGE | parsers.ErrorLocation.DATABASE)
@@ -52,7 +52,7 @@ def _action_check(args: argparse.Namespace, db: postutil.fmlib.db.Controller):
     print('Checksums do not match')
     raise parsers.DoExit(parsers.ExitCode.GENERIC | prasers.ErrorLocation.DATABASE)
 
-def _action_as_(expl: bool, args: argparse.Namespace, db: postutil.fmlib.db.Controller):
+def _action_as_(expl: bool, args: argparse.Namespace, db: 'postutil.fmlib.db.Controller'):
     if not args.targets:
         preutil.eprint('Nothing to do')
         return

@@ -41,17 +41,20 @@ ErrorLocation = IntEnum('ErrorLocation', {
 
 # Parser
 operations = {'database': 'D'}
-pre_parser = argparse.ArgumentParser()
+pre_parser = argparse.ArgumentParser(add_help=False)
 ## Options
 fl_apgroup = pre_parser.add_argument_group('FlexiLynx', 'Configuration for FlexiLynx and its entrypoint')
 fl_apgroup.add_argument('-r', '--root', type=Path, help='Set an alternative FlexiLynx root location', default=Path('.'))
 fl_apgroup.add_argument('-e', '--entrypoint', type=Path, help='Set an alternative FlexiLynx entrypoint (the default is inferred from the root)', default=None)
 fl_apgroup.add_argument('-l', '--runlevel', choices=range(2), help='The run-level to bring FlexiLynx up to (2 is recommended)', default=2)
 ## Menu
-_menu = pre_parser.add_mutually_exclusive_group(required=True)
+_menu = pre_parser.add_mutually_exclusive_group(required=False)
 _menu = functools.partial(preutil.menu_arg, _menu, 'op')
-for long,short in operations.items(): _menu(long, f'-{short}')
+for long,short in operations.items():
+    _menu(long, f'-{short}')
 del _menu
+## Help
+pre_parser.add_argument('-h', '--help', action='store_true')
 
 # Parsing
 def fix_short_operation(args: typing.Sequence[str]) -> typing.Sequence[str]:
