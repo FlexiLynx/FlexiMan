@@ -62,3 +62,4 @@ for modname,clses in _total_autobind_store.marked_c.items():
 # Manual patches
 db.Controller._STATE_OBJECT = db.State
 db.Controller._TOTAL_AUTOBOUND = True
+db.State._TOTAL_AUTOBOUND = True

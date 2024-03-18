@@ -32,6 +32,8 @@ class State(typing.NamedTuple):
     chksum: bytes | None
     vers: float = LATEST_VERSION
 
+    _TOTAL_AUTOBOUND = False
+
     @_total_autobind_store.bindable_meth
     def mkchksum(self, fl: FLType) -> bytes:
         '''
@@ -49,7 +51,7 @@ class State(typing.NamedTuple):
                 in both `State`s, but this will save construction of copy of both
         '''
         return self._replace(expl=self.expl if lazy else self.expl.copy(), deps=self.deps if lazy else self.deps.copy(),
-                             mtime=int(time.time()), chksum=self.mkchksum(fl))
+                             mtime=int(time.time()), chksum=(self.mkchksum() if self._TOTAL_AUTOBOUND else self.mkchksum(fl)))
 
 @_total_autobind_store.bindable_cls('db')
 class Controller(contextlib.AbstractContextManager):
