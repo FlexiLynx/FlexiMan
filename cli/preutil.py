@@ -17,8 +17,8 @@ __all__ = ('eprint',
 eprint = functools.partial(print, file=sys.stderr)
 
 # Argparse
-def menu_arg(ap: argparse.ArgumentParser, dest: str, name: str, *aliases: str, **kwargs):
-    ap.add_argument(f'--{name}', *aliases, dest=dest, action='store_const', const=name, **kwargs)
+def menu_arg(ap: argparse.ArgumentParser, dest: str, name: str, short: str, **kwargs):
+    ap.add_argument(short, f'--{name}', dest=dest, action='store_const', const=name, **kwargs)
 
 class RaiseAction(argparse.Action):
     __slots__ = ('_exc',)
