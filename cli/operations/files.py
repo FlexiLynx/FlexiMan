@@ -95,5 +95,7 @@ def _action_list(args: argparse.Namespace, db: 'postutil.fmlib.db.Controller', p
         print(json.dumps(tuple(pkg.files)) if args.json
               else '\n'.join(map(str, pkg.files)))
         return
+    print(json.dumps({id: tuple(map(str, pkg.files)) for id,pkg in packages.items()}) if args.json
+          else '\n'.join(f'{id}:\n{"\n".join(map(str, pkg.files))}' for id,pkg in packages.items()))
 
 actions = {'list': _action_list}
