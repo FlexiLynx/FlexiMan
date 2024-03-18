@@ -46,7 +46,7 @@ pre_parser = argparse.ArgumentParser(add_help=False)
 fl_apgroup = pre_parser.add_argument_group('FlexiLynx', 'Configuration for FlexiLynx and its entrypoint')
 fl_apgroup.add_argument('-r', '--root', type=Path, help='Set an alternative FlexiLynx root location', default=Path('.'))
 fl_apgroup.add_argument('-e', '--entrypoint', type=Path, help='Set an alternative FlexiLynx entrypoint (the default is inferred from the root)', default=None)
-fl_apgroup.add_argument('-l', '--runlevel', choices=range(2), help='The run-level to bring FlexiLynx up to (2 is recommended)', default=2)
+fl_apgroup.add_argument('--runlevel', choices=range(3), help='The run-level to bring FlexiLynx up to (2 is recommended)', default=2)
 ## Menu
 _menu = pre_parser.add_mutually_exclusive_group(required=False)
 _menu = functools.partial(preutil.menu_arg, _menu, 'op')
