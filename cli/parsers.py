@@ -33,7 +33,7 @@ ExitCode = IntEnum('ExitCode', {
 ERROR_LOCATION =  0b11110000
 ErrorLocation = IntEnum('ErrorLocation', {
     'NONE':       0b00000000, # success or usage
-    'ENTRYPOINT': 0b00010000, # failed whilst attemting to access entrypoint
+    'ENTRYPOINT': 0b00010000, # failed whilst attempting to access entrypoint
     'DATABASE':   0b00100000, # failed whilst attempting to access or use database
     'BLUEPRINT':  0b00110000, # failed whilst attempting to access or use blueprint
     'PACKAGE':    0b01000000, # failed whilst attempting to access or use package
