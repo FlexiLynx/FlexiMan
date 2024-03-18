@@ -29,6 +29,7 @@ def main(args: typing.Sequence[str]):
     op.fill(parser)
     ## dispatch to its parser
     args = parser.parse_args(args)
+    args.__dict__.update(pre.__dict__)
     ## dispatch to its main
     try: op.main(ep, args)
     except parsers.DoExit as e: sys.exit(e.code)
