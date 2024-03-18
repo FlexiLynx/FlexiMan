@@ -25,15 +25,14 @@ def fill(ap: argparse.ArgumentParser, for_help: bool):
     if not for_help:
         from .. import postutil
         ap.add_argument('--%dbgetter%', help=argparse.SUPPRESS, default=postutil.handle_database(ap, False),
-                        action=preutil.RaiseAction, const=TypeError(f'Why would you do this{"‽" if sys.getdefaultencoding == "utf-8" else "?!"}'))
+                        action=preutil.RaiseAction, const=TypeError(f'Why would you do this{"‽" if sys.getdefaultencoding() == "utf-8" else "?!"}'))
 def main(ep: types.ModuleType, args: argparse.Namespace):
     db = getattr(args, '%dbgetter%')(args)
-    print(1)
     preutil.eprint('Obtaining database lock...')
     try:
         with db: actions[args.action](args, db)
     finally:
-        preutil.eprint('Database lock successfully released')
+        preutil.eprint('Database lock (should have) successfully released')
 
 def _action_check(args: argparse.Namespace, db: 'postutil.fmlib.db.Controller'):
     import FlexiLynx
