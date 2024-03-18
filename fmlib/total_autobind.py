@@ -58,3 +58,7 @@ for modname,clses in _total_autobind_store.marked_c.items():
                      type(c.__name__, (c,), {'__slots__': (), '__module__': f'{__name__}.{modname}',
                           **{mn: partialmethod(m, _FlexiLynx)
                              for mn,m in getmembers(c, lambda m: getattr(m, '_totalautobindable', False))}}))
+
+# Manual patches
+db.Controller._STATE_OBJECT = db.State
+db.Controller._TOTAL_AUTOBOUND = True

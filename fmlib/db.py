@@ -61,6 +61,9 @@ class Controller(contextlib.AbstractContextManager):
     PACKAGE_DB_FILENAME = 'packages_db.pakd'
     PACKAGE_DB_LOCKNAME = f'{PACKAGE_DB_FILENAME}.lock'
 
+    _STATE_OBJECT = State
+    _TOTAL_AUTOBOUND = False
+
     @_total_autobind_store.bindable_meth
     def __init__(self, fl: FLType, path: Path):
         self.bound = fl
@@ -69,7 +72,9 @@ class Controller(contextlib.AbstractContextManager):
         self.flock = self.bound.core.util.parallel.FLock(path/self.PACKAGE_DB_LOCKNAME, self.rlock)
         self._dbfp = self.path / self.PACKAGE_DB_FILENAME
         self._packer = self.bound.core.util.pack.Packer(reduce_namedtuple=self.bound.core.util.pack.ReduceNamedtuple.AS_DICT)
-        self._db_state_null_chksum = State(expl={}, deps={}, mtime=-1, chksum=None).mkchksum(fl)
+
+        state_null = self._STATE_OBJECT(expl={}, deps={}, mtime=-1, chksum=None)
+        self._db_state_null_chksum = state_null.mkchksum() if self._TOTAL_AUTOBOUND else state_null.mkchksum(fl)
 
     def __enter__(self):
         self.flock.acquire()
@@ -90,9 +95,9 @@ class Controller(contextlib.AbstractContextManager):
             if not (allow_unlocked_read or self.flock.held):
                 raise RuntimeError('Refusing to read from the database without holding the file-lock when allow_unlocked_read is false')
             if not self._dbfp.exists():
-                if allow_nonexist_read: return State(expl={}, deps={}, mtime=-1, chksum=self._db_state_null_chksum)
+                if allow_nonexist_read: return self._STATE_OBJECT(expl={}, deps={}, mtime=-1, chksum=self._db_state_null_chksum)
                 raise FileNotFoundError('Refusing to read from the database when it doesn\'t exist and allow_nonexist_read is false')
-            return State(**self._packer.unpack(self._dbfp.read_bytes())[0])
+            return self._STATE_OBJECT(**self._packer.unpack(self._dbfp.read_bytes())[0])
     def write(self, s: State):
         '''
             Writes a `State` to the database, automatically calculating its checksum in the process
@@ -101,4 +106,5 @@ class Controller(contextlib.AbstractContextManager):
         with self.rlock:
             if not self.flock.held:
                 raise RuntimeError('Refusing to write a state to the database without holding the file-lock')
-            self._dbfp.write_bytes(self._packer.pack(s.update(self.bound, lazy=True)))
+            self._dbfp.write_bytes(self._packer.pack(s.update(lazy=True) if self._TOTAL_AUTOBOUND
+                                                     else s.update(self.bound, lazy=True)))
