@@ -18,15 +18,15 @@ __all__ = ('fill', 'main', 'actions')
 def fill(ap: argparse.ArgumentParser, for_help: bool):
     menu = ap.add_mutually_exclusive_group(required=True)
     preutil.menu_arg(menu, 'action', 'list', '-l')
+    preutil.menu_arg(menu, 'action', 'list-all', '-a', help='Like -l/--list, but output all files mentioned in the package\'s blueprint as well')
     # general
     ap.add_argument('-p', '--as-path', help='Treat targets as paths to packages, rather than package IDs (note that this will stop the loading of the packages database)')
     ap.add_argument('--ignore-missing', help='Ignore missing paths/packages--simply do not output', action='store_true')
     ap.add_argument('--ignore-invalid', help='Ignore packages that fail to load')
     ap.add_argument('targets', nargs='*')
-    # -l/--list
-    listg = ap.add_argument_group('List', 'Arguments specific to -l/--list')
-    listg.add_argument('-j', '--json', help='Output in JSON format', action='store_true')
-    listg.add_argument('--one-as-multi', help='Output a single package in the same format as when outputting multiple packages', action='store_true')
+    #listg = ap.add_argument_group('List', 'Arguments specific to -l/--list') # left for possible need in the future
+    ap.add_argument('-j', '--json', help='Output in JSON format', action='store_true')
+    ap.add_argument('--one-as-multi', help='Output a single package in the same format as when outputting multiple packages', action='store_true')
     # LGTM way to transfer the returned function from `postutil.handle_database()` to `main()`
     if not for_help:
         from .. import postutil
@@ -98,4 +98,38 @@ def _action_list(args: argparse.Namespace, db: 'postutil.fmlib.db.Controller', p
     print(json.dumps({id: tuple(map(str, pkg.files)) for id,pkg in packages.items()}) if args.json
           else '\n'.join(f'{id}:\n{"\n".join(map(str, pkg.files))}' for id,pkg in packages.items()))
 
-actions = {'list': _action_list}
+def _action_list_all(args: argparse.Namespace, db: 'postutil.fmlib.db.Controller', packages: dict[str, 'FlexiLynx.core.frameworks.blueprint.Package']):
+    if not packages:
+        print('{}' if args.json else 'No packages selected')
+        return
+    def process(p: 'Package') -> dict:
+        files = set(p.blueprint.main.files.keys()) | p.files
+        if p.blueprint.drafts:
+            for d in p.blueprint.drafts.values():
+                files |= d.files.keys()
+        return {f: {
+            'full': str(p.at/f),
+            'installed': (p.at/f).exists(),
+            'tracked': (f in p.files),
+            'main': (f in p.blueprint.main.files),
+            'drafts': tuple(did for did,d in p.blueprint.drafts.items() if f in d),
+        } for f in sorted(files)}
+    def printp(prcd: dict):
+        if prcd: print('\n'.join(f'{f}: {p["full"]}\nIs installed: {p["installed"]}\nIs tracked: {p["tracked"]}\n'
+                                 f'Is main: {p["main"]}\nIn drafts: {", ".join(map(repr, p["drafts"])) if p["drafts"] else "N/A"}' for f,p in prcd.items()))
+        else: print('The package\'s blueprint does not mention any files')
+    if (not args.one_as_multi) and (len(packages) == 1):
+        prcd = process(packages.popitem()[1])
+        if args.json: print(json.dumps(prcd))
+        else: printp(prcd)
+        return
+    from FlexiLynx.core.util.maptools import map_vals
+    prcd = map_vals(process, packages)
+    if args.json:
+        print(json.dumps(prcd))
+        return
+    for pkg,prc in prcd.items():
+        print(f'{pkg}:')
+        printp(prc)
+
+actions = {'list': _action_list, 'list-all': _action_list_all}
