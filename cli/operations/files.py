@@ -1,73 +1,82 @@
 #!/bin/python3
 
 #> Imports
-import sys
-import json
+import types
 import typing
 import argparse
 import traceback
 import contextlib
-from pathlib import Path
 
-from .. import common
-from ..parser import ExitCode
-
-from .. import _eprint
+from .. import preutil
+from .. import parsers
 #</Imports
 
 #> Header >/
-__all__ = ('cli', 'parser')
+__all__ = ('fill', 'main', 'actions')
 
-parser = argparse.ArgumentParser(prog=f'{sys.argv[0]} -F')
-common.root(parser)
-load_db = common.database(parser)
-exec_ep = common.entrypoint(parser, 2)
-menu = parser.add_mutually_exclusive_group(required=True)
-parser.add_argument('-p', '--as-path', help='Treat targets as paths to packages, rather than package IDs (note that this will stop the loading of the packages database)')
-parser.add_argument('--ignore-missing', help='Ignore missing paths/packages--simply do not output', action='store_true')
-parser.add_argument('--ignore-invalid', help='Ignore paths that are not packages')
-parser.add_argument('-j', '--json', help='Output in JSON format', action='store_true')
-parser.add_argument('targets', nargs='*')
-
-def cli(args: typing.Sequence[str]):
-    args = parser.parse_args(args)
-    ep,fmlib = exec_ep(args)
+def fill(ap: argparse.ArgumentParser, for_help: bool):
+    menu = ap.add_mutually_exclusive_group(required=True)
+    ap.add_argument('-p', '--as-path', help='Treat targets as paths to packages, rather than package IDs (note that this will stop the loading of the packages database)')
+    ap.add_argument('--ignore-missing', help='Ignore missing paths/packages--simply do not output', action='store_true')
+    ap.add_argument('--ignore-invalid', help='Ignore paths that are not packages')
+    ap.add_argument('-j', '--json', help='Output in JSON format', action='store_true')
+    ap.add_argument('targets', nargs='*')
+    # LGTM way to transfer the returned function from `postutil.handle_database()` to `main()`
+    if not for_help:
+        from .. import postutil
+        ap.add_argument('--%dbgetter%', help=argparse.SUPPRESS, default=postutil.handle_database(ap, False),
+                        action=preutil.RaiseAction, const=SyntaxError('Not a chance'))
+def main(ep: types.ModuleType, args: argparse.Namespace):
     if args.as_path: db = None
     else:
-        db = load_db(args, fmlib)
-        _eprint('Obtaining database lock...')
-    targets = dict.fromkeys(args.targets).keys()
-    with contextlib.nullcontext() if args.as_path else db:
-        if args.as_path:
-            targets = dict(zip(targets, map(Path, targets)))
-        if not args.as_path:
-            _eprint('Reading database...')
-            state = db.read()
-            missing = targets - (state.expl | state.deps)
-            _eprint('Some packages are not listed in the database:\n{", ".join(missing)}')
-            if missing and (not args.ignore_missing):
-                _eprint('Error: some packages were not listed in the database (pass --ignore-missing to ignore)')
-                return ExitCode.GENERIC
-            targets = {t: fmlib.packages.id_to_name(t) for t in targets}
-        exists = ep.FlexiLynx.core.util.maptools.filter_keys(Path.exists, targets)
-        if missing := (targets.keys() - exists.keys()):
-            _eprint(f'Missing {len(missing)} director(y/ies):')
-            if args.as_path:
-                for k in missing: _eprint(targets[k])
-            else:
-                for k in missing: _eprint(f'{k}: {targets[k]}')
+        db = getattr(args, '%dbgetter%')(args)
+        preutil.eprint('Obtaining database lock...')
+    try:
+        with contextlib.nullcontext() if (db is None) else db: main2(args, db)
+    finally:
+        if db is not None: preutil.eprint('Database lock (should have) successfully released')
+def main2(args: argparse.Namespace, db: typing.ForwardRef('postutil.fmlib.db.Controller') | None):
+    import FlexiLynx
+    from .. import postutil
+    targets = FlexiLynx.core.util.frozenorderedset(args.targets)
+    if not targets:
+        preutil.eprint('Nothing to do')
+        return
+    if args.as_path: targets = dict(zip(targets, map(Path, targets)))
+    else:
+        preutil.eprint('Reading database...')
+        state = db.read()
+        missing = targets - (state.expl | state.deps)
+        if missing:
+            preutil.eprint(f'Some targets are missing from the database:\n{", ".join(missing)}')
             if not args.ignore_missing:
-                _eprint('Error: some targets\' directories are missing (pass --ignore-missing to ignore)')
-                return ExitCode.GENERIC
-        packages = {}
-        for id,path in exists.items():
-            try:
-                packages[id] = ep.FlexiLynx.core.frameworks.blueprint.Package(path)
-            except Exception as e:
-                _eprint(f'Invalid package {path if args.as_path else f"{id} ({path})"}:')
-                _eprint((''.join(traceback.format_exc_only(e))).strip())
-                if args.ignore_invalid: continue
-                _eprint('Error: at least one package was invalid (pass --ignore-invalid to ignore)')
-                return ExitCode.GENERIC
-        _eprint(f'Dispatching to action_{args.action}()')
-        return globals()[f'action_{args.action}'](args, packages, fmlib, ep.FlexiLynx, db)
+                preutil.eprint('Error: cannot continue when targets are missing (pass --ignore-missing to ignore)')
+                raise parsers.DoExit(parsers.ExitCode.MISSING | parsers.ErrorLocation.PACKAGE)
+        targets = {t: args.root/postutil.fmlib.packages.id_to_name(t) for t in targets}
+    exists = {t: p for t,p in targets.items() if p.exists()}
+    if missing := (targets.keys() - exists.keys()):
+        preutil.eprint('Missing {len(missing)} director(y/ies):')
+        preutil.eprint('\n'.join(map(str, map(targets.__getitem__, missing)) if args.as_path
+                                 else (f'{t}: {targets[t]}' for t in targets)))
+        if not args.ignore_missing:
+            preutil.eprint('Error: cannot continue when targeted package directories are missing (pass --ignore-missing to ignore')
+            raise parsers.DoExit(parsers.ExitCode.MISSING | parsers.ErrorLocation.PACKAGE)
+    packages = {}
+    for id,path in exists.items():
+        try:
+            packages[id] = FlexiLynx.core.frameworks.blueprint.Package(path)
+        except FileNotFoundError as fnfe:
+            preutil.eprint(f'Could not load package {id} (from {path}), as it does not have a blueprint:')
+            preutil.eprint((''.join(traceback.format_exc_only(e))).strip())
+            ec = parsers.ExitCode.MISSING | parsers.ErrorLocation.BLUEPRINT
+        except Exception as e:
+            preutil.eprint(f'Could not load package {id} (from {path}):')
+            preutil.eprint((''.join(traceback.format_exc_only(e))).strip())
+            ec = parsers.ExitCode.INVALID | parsers.ErrorLocation.PACKAGE
+        else: continue
+        preutil.eprint('Error: cannot continue after failing to load package (pass --ignore-invalid to ignore)')
+        raise parsers.DoExit(ec)
+    preutil.eprint(f'Loaded {len(packages)} package(s)')
+    actions[arg.action](args, db, packages)
+
+actions = {}

@@ -40,7 +40,7 @@ ErrorLocation = IntEnum('ErrorLocation', {
 })
 
 # Parser
-operations = {'database': 'D'}
+operations = {'database': 'D', 'files': 'F'}
 pre_parser = argparse.ArgumentParser(add_help=False)
 ## Options
 fl_apgroup = pre_parser.add_argument_group('FlexiLynx', 'Configuration for FlexiLynx and its entrypoint')
